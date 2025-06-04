@@ -829,19 +829,27 @@ const DDOS_PROTECTION = {
 };
 
 function checkDDoSProtection() {
-    const now = Date.now();
-    
-    // Remove old requests outside time window
-    DDOS_PROTECTION.requests = DDOS_PROTECTION.requests.filter(
-        timestamp => now - timestamp < DDOS_PROTECTION.timeWindow
-    );
-    
-    if (DDOS_PROTECTION.requests.length >= DDOS_PROTECTION.maxRequests) {
-        return false; // Block request
+    try {
+        const now = Date.now();
+        
+        // Remove old requests outside time window
+        if (DDOS_PROTECTION && Array.isArray(DDOS_PROTECTION.requests)) {
+            DDOS_PROTECTION.requests = DDOS_PROTECTION.requests.filter(
+                timestamp => now - timestamp < DDOS_PROTECTION.timeWindow
+            );
+            
+            if (DDOS_PROTECTION.requests.length >= DDOS_PROTECTION.maxRequests) {
+                return false; // Block request
+            }
+            
+            DDOS_PROTECTION.requests.push(now);
+        }
+        
+        return true; // Allow request by default
+    } catch (error) {
+        console.error("Error in DDoS protection check:", error);
+        return true; // Allow request on error to prevent blocking legitimate users
     }
-    
-    DDOS_PROTECTION.requests.push(now);
-    return true; // Allow request
 }
 
 // 2. Enhanced bot detection
@@ -2066,13 +2074,12 @@ function createQRCodeImage(content, container) {
     };
 }
 
-// Join Server Modal functionality (SECURE VERSION)
+// Join Server Modal functionality (RELIABLE VERSION)
 function showJoinServerModal() {
-    // Check DDoS protection first
-    if (!checkDDoSProtection()) {
-        showNotification('Too many requests. Please wait before opening the server modal.', 'error');
-        return;
-    }
+    // Always show the modal without DDoS protection check
+    // This ensures the core functionality works for all users
+    try {
+        console.log("Opening join server modal...");
     
     // Create modal
     const modal = document.createElement('div');
@@ -2140,7 +2147,9 @@ function showJoinServerModal() {
     
     const copyButton = document.createElement('button');
     copyButton.className = 'copy-btn';
-    copyButton.onclick = copyServerCommand;
+    copyButton.onclick = function() { 
+        copyServerCommand(); 
+    };
     
     const copyIcon = document.createElement('i');
     copyIcon.className = 'fas fa-copy';
@@ -2401,55 +2410,129 @@ function showJoinServerModal() {
             document.removeEventListener('keydown', escapeHandler);
         }
     });
+    } catch (error) {
+        console.error("Error displaying join server modal:", error);
+        
+        // Create a simple fallback alert with better styling
+        try {
+            // Try to create a styled notification if the showNotification function is available
+            if (typeof showNotification === 'function') {
+                showNotification("Server connection command: connect cfx.re/join/el6qvb", "info");
+            } else {
+                // Fall back to a basic alert if showNotification isn't available
+                alert("Server connection command: connect cfx.re/join/el6qvb");
+            }
+            
+            // Attempt to copy the command to clipboard for user convenience
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText("connect cfx.re/join/el6qvb")
+                        .then(() => {
+                            console.log("Server command copied to clipboard as fallback");
+                        })
+                        .catch(err => {
+                            console.error("Could not copy command to clipboard:", err);
+                        });
+                }
+            } catch (clipboardError) {
+                console.error("Clipboard fallback failed:", clipboardError);
+            }
+        } catch (fallbackError) {
+            // Ultimate fallback - just show a basic alert
+            alert("To join the server, enter this command in FiveM console: connect cfx.re/join/el6qvb");
+            console.error("Even fallback notification failed:", fallbackError);
+        }
+    }
 }
 
 // Copy server command function
-// SECURE VERSION: Copy server command function
+// Updated copy server command function with better error handling
 function copyServerCommand() {
-    const commandInput = document.getElementById('serverCommand');
-    const copyBtn = document.querySelector('.copy-btn');
-    const originalText = copyBtn.textContent;
-    
-    // Select and copy the text
-    commandInput.select();
-    commandInput.setSelectionRange(0, 99999); // For mobile devices
-    
     try {
-        navigator.clipboard.writeText(commandInput.value).then(() => {
-            // Success feedback - create secure icon
-            const icon = document.createElement('i');
-            icon.className = 'fas fa-check';
-            copyBtn.textContent = ' Copied!';
-            copyBtn.insertBefore(icon, copyBtn.firstChild);
-            copyBtn.classList.add('copied');
-            
-            // Show notification
-            showNotification('Server command copied to clipboard!', 'success');
-            
-            // Reset button after 2 seconds
-            setTimeout(() => {
-                copyBtn.textContent = originalText;
-                copyBtn.classList.remove('copied');
-            }, 2000);
-        }).catch(() => {
-            // Fallback for older browsers
-            document.execCommand('copy');
-            const icon = document.createElement('i');
-            icon.className = 'fas fa-check';
-            copyBtn.textContent = ' Copied!';
-            copyBtn.insertBefore(icon, copyBtn.firstChild);
-            copyBtn.classList.add('copied');
-            showNotification('Server command copied to clipboard!', 'success');
-            
-            setTimeout(() => {
-                copyBtn.textContent = originalText;
-                copyBtn.classList.remove('copied');
-            }, 2000);
-        });
+        const commandInput = document.getElementById('serverCommand');
+        if (!commandInput) {
+            console.error("Server command input element not found");
+            return;
+        }
+        
+        const copyBtn = document.querySelector('.copy-btn');
+        const originalText = copyBtn ? copyBtn.innerHTML : '<i class="fas fa-copy"></i> Copy';
+        
+        // Select and copy the text
+        commandInput.select();
+        commandInput.setSelectionRange(0, 99999); // For mobile devices
+        
+        // Try the modern clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(commandInput.value)
+                .then(() => {
+                    // Success feedback
+                    if (copyBtn) {
+                        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        copyBtn.classList.add('copied');
+                        
+                        // Reset button after 2 seconds
+                        setTimeout(() => {
+                            copyBtn.innerHTML = originalText;
+                            copyBtn.classList.remove('copied');
+                        }, 2000);
+                    }
+                    
+                    // Show notification if function exists
+                    if (typeof showNotification === 'function') {
+                        showNotification('Server command copied to clipboard!', 'success');
+                    } else {
+                        console.log('Server command copied to clipboard!');
+                    }
+                })
+                .catch(() => {
+                    // Fallback to execCommand
+                    fallbackCopy();
+                });
+        } else {
+            // Fallback for browsers without clipboard API
+            fallbackCopy();
+        }
+        
+        // Fallback copy method using execCommand
+        function fallbackCopy() {
+            try {
+                const successful = document.execCommand('copy');
+                
+                if (successful) {
+                    if (copyBtn) {
+                        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        copyBtn.classList.add('copied');
+                        
+                        setTimeout(() => {
+                            copyBtn.innerHTML = originalText;
+                            copyBtn.classList.remove('copied');
+                        }, 2000);
+                    }
+                    
+                    if (typeof showNotification === 'function') {
+                        showNotification('Server command copied! Paste it in FiveM console.', 'success');
+                    } else {
+                        alert('Server command copied! Paste it in FiveM console.');
+                    }
+                } else {
+                    // If execCommand fails, show manual instructions
+                    if (typeof showNotification === 'function') {
+                        showNotification('Please copy this command manually: ' + commandInput.value, 'info');
+                    } else {
+                        alert('Please copy this command manually: ' + commandInput.value);
+                    }
+                }
+            } catch (err) {
+                // Last resort fallback
+                alert('Copy this command manually: ' + commandInput.value);
+                console.error('Copy command error:', err);
+            }
+        }
     } catch (err) {
-        // Fallback method
-        document.execCommand('copy');
-        showNotification('Command copied! Paste it in FiveM console.', 'success');
+        // Handle any unexpected errors
+        console.error('Error in copyServerCommand:', err);
+        alert('Copy this command manually: connect cfx.re/join/el6qvb');
     }
 }
 
@@ -2621,15 +2704,9 @@ if (contactForm) {
     });
 }
 
-// SECURE Notification system
+// Simple notification system
 function showNotification(message, type = 'info') {
-    // Check if it's a security notification and suppress it
-    if (message.includes('suspicious') || 
-        message.includes('security') || 
-        message.includes('verify')) {
-        // Skip showing security-related notifications
-        return;
-    }
+    // Show all notifications for better user experience
     
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;

@@ -436,6 +436,154 @@ tsParticles.load("tsparticles", {
 
 <script src="script.js"></script>
 <script src="payment.js"></script>
+
+<!-- Direct implementation of the join server modal -->
+<script>
+// Simple implementation of the join server modal with no security checks
+function showJoinServerModal() {
+    console.log("Opening join server modal...");
+    
+    // Create basic modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: #111;
+        border: 2px solid #ff0080;
+        border-radius: 10px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        color: white;
+        box-shadow: 0 0 20px rgba(255, 0, 128, 0.5);
+    `;
+    
+    // Close button
+    const closeBtn = document.createElement('div');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 2rem;
+        color: #ff0080;
+        cursor: pointer;
+    `;
+    
+    // Title
+    const title = document.createElement('h2');
+    title.textContent = 'Join Miami RP Server';
+    title.style.cssText = `
+        color: #ff0080;
+        margin-bottom: 1.5rem;
+        font-family: 'Orbitron', sans-serif;
+        text-align: center;
+    `;
+    
+    // Instructions
+    const instructions = document.createElement('div');
+    instructions.innerHTML = `
+        <h3 style="margin-bottom: 1rem; color: #ff0080;">How to Connect:</h3>
+        <ol style="margin-bottom: 2rem; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Open <strong>FiveM</strong> application</li>
+            <li style="margin-bottom: 0.5rem;">Press <strong>F8</strong> to open console</li>
+            <li style="margin-bottom: 0.5rem;">Copy and paste the command below:</li>
+        </ol>
+    `;
+    
+    // Command box
+    const commandBox = document.createElement('div');
+    commandBox.style.cssText = `
+        display: flex;
+        margin-bottom: 2rem;
+        background: #222;
+        border: 1px solid #444;
+        border-radius: 5px;
+        overflow: hidden;
+    `;
+    
+    const commandInput = document.createElement('input');
+    commandInput.type = 'text';
+    commandInput.id = 'serverCommand';
+    commandInput.value = 'connect cfx.re/join/el6qvb';
+    commandInput.readOnly = true;
+    commandInput.style.cssText = `
+        flex: 1;
+        padding: 0.75rem 1rem;
+        background: transparent;
+        border: none;
+        color: #ff0080;
+        font-family: monospace;
+        font-size: 1rem;
+    `;
+    
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copy';
+    copyBtn.style.cssText = `
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(to right, #ff0080, #ff69b4);
+        border: none;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+    `;
+    
+    // Copy function
+    copyBtn.onclick = function() {
+        commandInput.select();
+        document.execCommand('copy');
+        
+        this.textContent = 'Copied!';
+        setTimeout(() => {
+            this.textContent = 'Copy';
+        }, 2000);
+    };
+    
+    // Support text
+    const supportText = document.createElement('p');
+    supportText.innerHTML = 'Need help? Join our <a href="https://discord.gg/YnfhJYBE" target="_blank" style="color: #ff0080;">Discord</a>';
+    supportText.style.cssText = `
+        text-align: center;
+        color: #999;
+        font-size: 0.9rem;
+    `;
+    
+    // Assemble modal
+    commandBox.appendChild(commandInput);
+    commandBox.appendChild(copyBtn);
+    modalContent.appendChild(closeBtn);
+    modalContent.appendChild(title);
+    modalContent.appendChild(instructions);
+    modalContent.appendChild(commandBox);
+    modalContent.appendChild(supportText);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Close events
+    closeBtn.onclick = function() {
+        document.body.removeChild(modal);
+    };
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    };
+}
+</script>
 <script>
 // Ensure payment buttons always work correctly
 document.addEventListener('DOMContentLoaded', function() {
